@@ -22,13 +22,13 @@
 
 #include "internal.h"
 #include "crypto/ed25519/ed25519.h"
-#include "../../../../libeddsa/lib/eddsa.h"
 #include <string.h>
 
-/* We use ed25519's faster curved25519_scalarmult_basepoint() function
-   when deriving a public key from a private key.  Unfortunately ed25519
-   doesn't have an equivalent function for general curve25519 calculations
-   so we fall back to the curve25519-donna implementation for that. */
+/* Use libeddsa's X25519 primitives for Curve25519 operations.
+    Declare only the required symbols here to avoid pulling eddsa.h,
+    which has conflicting ed25519_sign declarations with noise-c's ed25519. */
+void x25519_base(uint8_t out[32], const uint8_t scalar[32]);
+void x25519(uint8_t out[32], const uint8_t scalar[32], const uint8_t point[32]);
 
 typedef struct
 {
