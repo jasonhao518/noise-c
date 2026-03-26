@@ -23,6 +23,7 @@
 #include "internal.h"
 #include "crypto/chacha/chacha.h"
 #include "crypto/donna/poly1305-donna.h"
+#include <stdio.h>
 #include <string.h>
 
 typedef struct
@@ -126,6 +127,11 @@ static int noise_chachapoly_decrypt
     (NoiseCipherState *state, const uint8_t *ad, size_t ad_len,
      uint8_t *data, size_t len)
 {
+    static int backend_logged = 0;
+    if (!backend_logged) {
+        backend_logged = 1;
+        fprintf(stderr, "libp2p-noise: backend=ref cipher=chachapoly\n");
+    }
     NoiseChaChaPolyState *st = (NoiseChaChaPolyState *)state;
     noise_chachapoly_setup(st, state->n);
     if (ad_len) {
@@ -136,8 +142,14 @@ static int noise_chachapoly_decrypt
     noise_chachapoly_pad_auth(st, len);
     noise_chachapoly_auth_lengths(st, ad_len, len);
     poly1305_finish(&(st->poly1305), st->block);
-    if (!noise_is_equal(st->block, data + len, 16))
+    if (!noise_is_equal(st->block, data + len, 16)) {
+        fprintf(stderr,
+                "libp2p-noise: backend=ref MAC fail nonce=%llu ad_len=%zu ct_len=%zu\n",
+                (unsigned long long)state->n,
+                ad_len,
+                len);
         return NOISE_ERROR_MAC_FAILURE;
+    }
     chacha_encrypt_bytes(&(st->chacha), data, data, len);
     return NOISE_ERROR_NONE;
 }
