@@ -22,14 +22,13 @@
 
 #include "internal.h"
 #include "crypto/ed25519/ed25519.h"
+#include "../../../../libeddsa/lib/eddsa.h"
 #include <string.h>
 
 /* We use ed25519's faster curved25519_scalarmult_basepoint() function
    when deriving a public key from a private key.  Unfortunately ed25519
    doesn't have an equivalent function for general curve25519 calculations
    so we fall back to the curve25519-donna implementation for that. */
-
-int curve25519_donna(uint8_t *mypublic, const uint8_t *secret, const uint8_t *basepoint);
 
 typedef struct
 {
@@ -46,7 +45,7 @@ static int noise_curve25519_generate_keypair
     noise_rand_bytes(st->private_key, 32);
     st->private_key[0] &= 0xF8;
     st->private_key[31] = (st->private_key[31] & 0x7F) | 0x40;
-    curved25519_scalarmult_basepoint(st->public_key, st->private_key);
+    x25519_base(st->public_key, st->private_key);
     return NOISE_ERROR_NONE;
 }
 
@@ -58,7 +57,7 @@ static int noise_curve25519_set_keypair
     NoiseCurve25519State *st = (NoiseCurve25519State *)state;
     uint8_t temp[32];
     int equal;
-    curved25519_scalarmult_basepoint(temp, private_key);
+    x25519_base(temp, private_key);
     equal = noise_is_equal(temp, public_key, 32);
     memcpy(st->private_key, private_key, 32);
     memcpy(st->public_key, public_key, 32);
@@ -70,7 +69,7 @@ static int noise_curve25519_set_keypair_private
 {
     NoiseCurve25519State *st = (NoiseCurve25519State *)state;
     memcpy(st->private_key, private_key, 32);
-    curved25519_scalarmult_basepoint(st->public_key, st->private_key);
+    x25519_base(st->public_key, st->private_key);
     return NOISE_ERROR_NONE;
 }
 
@@ -97,8 +96,8 @@ static int noise_curve25519_calculate
      uint8_t *shared_key)
 {
     /* Do we need to check that the public key is less than 2^255 - 19? */
-    curve25519_donna(shared_key, private_key_state->private_key,
-                     public_key_state->public_key);
+    x25519(shared_key, private_key_state->private_key,
+           public_key_state->public_key);
     return NOISE_ERROR_NONE;
 }
 
@@ -123,9 +122,4 @@ NoiseDHState *noise_curve25519_new(void)
     return &(state->parent);
 }
 
-/* Choose the version of curve25519-donna based on the word size */
-#if __WORDSIZE == 64 && defined(__GNUC__)
-#include "crypto/donna/curve25519-donna-c64.c"
-#else
-#include "crypto/donna/curve25519-donna.c"
-#endif
+/* Curve25519 operations are provided by libeddsa x25519 implementation. */
