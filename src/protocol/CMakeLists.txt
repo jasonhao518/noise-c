@@ -31,13 +31,9 @@ target_compile_options(noiseprotocol PRIVATE -Wall)
 
 # Determine crypto backend
 if(USE_LIBSODIUM)
-    find_package(PkgConfig)
-    pkg_search_module(LIBSODIUM libsodium)
-    if(LIBSODIUM_FOUND)
-        target_include_directories(noiseprotocol PRIVATE ${LIBSODIUM_INCLUDE_DIRS})
-        target_link_libraries(noiseprotocol PUBLIC ${LIBSODIUM_LIBRARIES})
-        target_compile_definitions(noiseprotocol PRIVATE USE_LIBSODIUM=1)
-    endif()
+    target_include_directories(noiseprotocol PRIVATE ${LIBSODIUM_INCLUDE_DIRS})
+    target_link_libraries(noiseprotocol PUBLIC ${LIBSODIUM_LIBRARIES})
+    target_compile_definitions(noiseprotocol PRIVATE USE_LIBSODIUM=1)
 endif()
 
 if(USE_OPENSSL)
